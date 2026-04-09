@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Cotización e Inventario</title>
+    <link rel="stylesheet" href="C:\Users\ingbe\Calculo precios sistema\css\style.css">
+</head>
+<body>
+
+<nav class="no-print">
+    <button class="active" onclick="tab(event, 'c1')">Costo Material</button>
+    <button onclick="tab(event, 'c2')">Impresión (Pies²)</button>
+    <button onclick="tab(event, 'c3')">Cotizar Artículos</button>
+    <button onclick="tab(event, 'c4')">⚙️ Inventario</button>
+</nav>
+
+<div id="c1" class="container active">
+    <h2>Analizador de Costo</h2>
+    <div class="grid-2">
+        <div><label>Ancho (pulg)</label><input type="number" id="b_ancho" placeholder="0"></div>
+        <div><label>Alto (pulg)</label><input type="number" id="b_alto" placeholder="0"></div>
+    </div>
+    <label>Precio Compra</label>
+    <input type="number" id="b_precio" placeholder="0.00">
+    <button onclick="calcBase()">Calcular Precio/Pie²</button>
+    <div id="res_b" style="margin-top:15px; font-weight:bold; text-align:center; color: var(--primary);"></div>
+</div>
+
+<div id="c2" class="container wide">
+    <div class="no-print">
+        <h2>Calculadora de Impresión</h2>
+        <div class="grid-2">
+            <div>
+                <label>Descripción</label>
+                <input type="text" id="m_desc" placeholder="Ej: Lona Banner">
+            </div>
+            <div>
+                <label>Unidad</label>
+                <select id="m_uni">
+                    <option value="pulg">Pulgadas</option>
+                    <option value="cm">Centímetros</option>
+                    <option value="pie">Pies</option>
+                </select>
+            </div>
+        </div>
+        <div class="grid-3">
+            <div><label>Ancho</label><input type="number" id="m_w"></div>
+            <div><label>Alto</label><input type="number" id="m_h"></div>
+            <div><label>Precio Pie²</label><input type="number" id="m_p"></div>
+        </div>
+        <button class="btn-add" onclick="addMedida()">+ Agregar Impresión</button>
+    </div>
+</div>
+
+<div id="c3" class="container wide">
+    <div class="no-print">
+        <h2>Artículos y Servicios</h2>
+        <label>Seleccionar de Inventario:</label>
+        <select id="v_select" onchange="cargarDesdeInventario()">
+            <option value="">-- Seleccionar producto --</option>
+        </select>
+        
+        <div class="grid-3" style="grid-template-columns: 2fr 1fr 1fr; margin-top:15px;">
+            <div><label>Artículo</label><input type="text" id="v_desc" placeholder="Nombre"></div>
+            <div><label>Precio Unit.</label><input type="number" id="v_p"></div>
+            <div><label>Cant.</label><input type="number" id="v_c" value="1"></div>
+        </div>
+        <button class="btn-add" onclick="addVarios()">+ Agregar a Cotización</button>
+    </div>
+</div>
+
+<div id="c4" class="container">
+    <h2>Gestión de Inventario</h2>
+    <label>Nombre del Producto</label>
+    <input type="text" id="inv_nombre" placeholder="Ej: Tubo 1/2 pulgada">
+    <label>Precio de Venta</label>
+    <input type="number" id="inv_precio" placeholder="0.00">
+    <button class="btn-success" onclick="guardarInventario()">Guardar en Inventario</button>
+    
+    <div style="margin-top: 20px;">
+        <h3>Productos Guardados</h3>
+        <ul id="lista_inv" style="list-style: none; padding: 0; font-size: 14px;"></ul>
+    </div>
+</div>
+
+<div id="global-table-container" style="width: 95%; max-width: 850px; margin-top: 20px; display:none;">
+    <div class="table-section">
+        <h1 class="print-only">COTIZACIÓN DE SERVICIOS</h1>
+        <p class="print-only" style="text-align:right">Fecha: <span id="fecha-print"></span></p>
+
+        <table id="mainTable">
+            <thead>
+                <tr>
+                    <th>Descripción</th>
+                    <th>Detalle/Medida</th>
+                    <th>Subtotal</th>
+                    <th class="no-print">Acción</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="2" style="text-align:right">TOTAL GENERAL:</td>
+                    <td id="granTotal">RD$ 0.00</td>
+                    <td class="no-print"></td>
+                </tr>
+            </tfoot>
+        </table>
+        
+        <button class="btn-success no-print" onclick="finalizarYGuardarCotizacion()" style="margin-top:20px;">
+            💾 Guardar e Imprimir Resumen
+        </button>
+    </div>
+</div>
+
+<script>
+const API_URL = "http://localhost:5000/inventario";
+let carrito = [];
+let inventario = [];
+
+window.onload = async () => {
+    await cargarInventarioDesdeDB();
+};
+
+function tab(e, id) {
+    document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    e.currentTarget.classList.add('active');
+    
+    const table = document.getElementById('global-table-container');
+    if(id === 'c2' || id === 'c3') {
+        table.style.display = "block";
+        document.getElementById(id).appendChild(table);
+    } else {
+        table.style.display = "none";
+    }
+}
+
+// --- INVENTARIO ---
+async function cargarInventarioDesdeDB() {
+    try {
+        const res = await fetch(API_URL);
+        if (!res.ok) throw new Error();
+        inventario = await res.json();
+        renderInventario();
+        actualizarSelectInventario();
+    } catch (error) {
+        console.log("Servidor no detectado, operando en modo local/limitado.");
+    }
+}
+
+async function guardarInventario() {
+    const nombre = document.getElementById('inv_nombre').value;
+    const precio = parseFloat(document.getElementById('inv_precio').value);
+    if(!nombre || isNaN(precio)) return alert("Ingresa datos válidos");
+
+    try {
+        await fetch(API_URL, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ nombre, precio })
+        });
+        document.getElementById('inv_nombre').value = "";
+        document.getElementById('inv_precio').value = "";
+        await cargarInventarioDesdeDB();
+    } catch (e) { alert("Error de conexión"); }
+}
+
+async function borrarInv(id) {
+    if(!confirm("¿Eliminar producto?")) return;
+    try {
+        await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+        await cargarInventarioDesdeDB();
+    } catch (e) { alert("Error al eliminar"); }
+}
+
+function renderInventario() {
+    const lista = document.getElementById('lista_inv');
+    lista.innerHTML = "";
+    inventario.forEach((item) => {
+        lista.innerHTML += `
+            <li style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:8px 0;">
+                <span><strong>${item.nombre}</strong> - RD$ ${parseFloat(item.precio).toFixed(2)}</span>
+                <button class="btn-del" onclick="borrarInv(${item.id})">Eliminar</button>
+            </li>`;
+    });
+}
+
+function actualizarSelectInventario() {
+    const select = document.getElementById('v_select');
+    select.innerHTML = '<option value="">-- Seleccionar producto --</option>';
+    inventario.forEach((item, index) => {
+        select.innerHTML += `<option value="${index}">${item.nombre} (RD$ ${parseFloat(item.precio).toFixed(2)})</option>`;
+    });
+}
+
+function cargarDesdeInventario() {
+    const idx = document.getElementById('v_select').value;
+    if(idx !== "") {
+        document.getElementById('v_desc').value = inventario[idx].nombre;
+        document.getElementById('v_p').value = inventario[idx].precio;
+    }
+}
+
+// --- COTIZACIÓN ---
+function addMedida() {
+    const desc = document.getElementById('m_desc').value || "Impresión";
+    const w = parseFloat(document.getElementById('m_w').value);
+    const h = parseFloat(document.getElementById('m_h').value);
+    const uni = document.getElementById('m_uni').value;
+    const p = parseFloat(document.getElementById('m_p').value);
+
+    if(isNaN(w) || isNaN(h) || isNaN(p)) return alert("Completa los datos");
+
+    let wp = w, hp = h;
+    if(uni === 'pulg') { wp /= 12; hp /= 12; }
+    else if(uni === 'cm') { wp /= 30.48; hp /= 30.48; }
+
+    const sub = wp * hp * p;
+    carrito.push({ desc, detalle: `${w}x${h} ${uni} (@RD$ ${p}/pie²)`, sub });
+    updateTable();
+    document.getElementById('m_w').value = ""; document.getElementById('m_h').value = "";
+}
+
+function addVarios() {
+    const desc = document.getElementById('v_desc').value;
+    const p = parseFloat(document.getElementById('v_p').value);
+    const c = parseFloat(document.getElementById('v_c').value);
+
+    if(!desc || isNaN(p)) return alert("Datos incompletos");
+
+    const sub = p * c;
+    carrito.push({ desc, detalle: `${c} unidad(es) x RD$ ${p.toFixed(2)}`, sub });
+    updateTable();
+    document.getElementById('v_desc').value = ""; document.getElementById('v_p').value = "";
+}
+
+function updateTable() {
+    const tbody = document.querySelector("#mainTable tbody");
+    tbody.innerHTML = "";
+    let total = 0;
+    carrito.forEach((item, i) => {
+        total += item.sub;
+        tbody.innerHTML += `<tr>
+            <td>${item.desc}</td>
+            <td>${item.detalle}</td>
+            <td>RD$ ${item.sub.toFixed(2)}</td>
+            <td class="no-print"><button class="btn-del" onclick="delItem(${i})">X</button></td>
+        </tr>`;
+    });
+    document.getElementById('granTotal').innerText = `RD$ ${total.toFixed(2)}`;
+}
+
+function delItem(i) {
+    carrito.splice(i, 1);
+    updateTable();
+}
+
+function calcBase() {
+    const w = parseFloat(document.getElementById('b_ancho').value);
+    const h = parseFloat(document.getElementById('b_alto').value);
+    const p = parseFloat(document.getElementById('b_precio').value);
+    if(w && h && p) {
+        const area = (w/12)*(h/12);
+        document.getElementById('res_b').innerHTML = `Área: ${area.toFixed(2)} pie² <br> Costo: RD$ ${(p/area).toFixed(2)} / pie²`;
+    }
+}
+
+async function finalizarYGuardarCotizacion() {
+    if (carrito.length === 0) return alert("Tabla vacía");
+
+    const total = parseFloat(document.getElementById('granTotal').innerText.replace('RD$ ', ''));
+    const datosAEnviar = { total: total, items: carrito };
+
+    try {
+        const res = await fetch("http://127.0.0.1:5000/guardar_cotizacion", {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(datosAEnviar)
+        });
+
+        if (res.ok) {
+            const respuesta = await res.json();
+            document.getElementById('fecha-print').innerText = new Date().toLocaleString();
+            alert("Cotización #" + respuesta.id + " guardada.");
+            window.print();
+        }
+    } catch (error) {
+        alert("Error de servidor. Se imprimirá sin guardar en base de datos.");
+        window.print();
+    }
+}
+</script>
+</body>
+</html>

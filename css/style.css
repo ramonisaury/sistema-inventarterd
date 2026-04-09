@@ -1,0 +1,130 @@
+:root {
+    --primary: #eb7725;
+    --primary-hover: #ed6e19;
+    --success: #16a34a;
+    --danger: #dc2626;
+    --accent: #c65301;
+    --bg: #f4f6f9;
+    --text: #333;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--bg);
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    color: var(--text);
+    padding-bottom: 50px;
+}
+
+/* --- Navegación --- */
+nav {
+    background: white;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+nav button {
+    padding: 15px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: bold;
+    color: #666;
+    border-bottom: 3px solid transparent;
+    transition: 0.3s;
+}
+
+nav button.active {
+    color: var(--primary);
+    border-bottom: 3px solid var(--primary);
+}
+
+/* --- Contenedores --- */
+.container {
+    display: none;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    width: 95%;
+    max-width: 500px;
+    margin-top: 10px;
+}
+
+.container.active { display: block; }
+.wide { max-width: 850px; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+label { display: block; margin-top: 10px; font-size: 13px; font-weight: bold; }
+
+input, select, button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+button { 
+    background: var(--primary); 
+    color: white; 
+    border: none; 
+    cursor: pointer; 
+    font-weight: bold; 
+    margin-top: 15px; 
+    transition: 0.2s;
+}
+
+button:hover { opacity: 0.9; }
+.btn-add { background: var(--accent); }
+.btn-success { background: var(--success); }
+.btn-del { background: var(--danger); width: auto; padding: 4px 8px; margin: 0; font-size: 11px; }
+
+/* --- Tabla --- */
+.table-section { margin-top: 30px; width: 100%; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; }
+th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+th { background: #f8fafc; }
+.total-row { font-weight: bold; font-size: 16px; background: #f1f5f9; }
+
+.print-only { display: none; }
+
+/* --- IMPRESIÓN --- */
+@media print {
+    nav, .no-print, button, .btn-del, #c1, #c4 { display: none !important; }
+    
+    body { background: white !important; padding: 0; }
+    
+    .container, .wide { 
+        display: block !important; 
+        box-shadow: none !important; 
+        max-width: 100% !important; 
+        width: 100% !important;
+    }
+
+    #global-table-container {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+    }
+
+    .print-only { display: block !important; }
+    table { border: 1px solid #000 !important; width: 100%; }
+    th, td { border: 1px solid #000 !important; }
+    th { background: #eee !important; }
+}
