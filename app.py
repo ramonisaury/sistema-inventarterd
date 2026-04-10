@@ -8,7 +8,7 @@ CORS(app)
 
 # Configuración de MySQL (Railway)
 db_config = {
-    'host': 'mysql.railway.internal',
+    'host': 'mysql://root:KfvWEynWDrziCgNCaUStMCCAXyPaaSGM@mainline.proxy.rlwy.net:30898/railway',
     'user': 'root',
     'password': 'KfvWEynWDrziCgNCaUStMCCAXyPaaSGM',
     'database': 'railway',
