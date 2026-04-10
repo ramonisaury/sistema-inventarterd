@@ -5,10 +5,18 @@ import os
 
 app = Flask(__name__)
 app.secret_key = "inventarte_secret_key"
-CORS(app, supports_credentials=True) # Agregado supports_credentials para que las sesiones funcionen con CORS
+
+# Configuración de Cookies para evitar problemas de sesión
+app.config.update(
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=False, # Cambiar a True si usas HTTPS en producción
+    SESSION_COOKIE_HTTPONLY=True
+)
+
+# Permitir credenciales es vital para que session['user'] funcione
+CORS(app, supports_credentials=True)
 
 # --- CONFIGURACIÓN DE BASE DE DATOS ---
-
 db_config = {
     'host': 'mainline.proxy.rlwy.net',
     'user': 'root',
@@ -108,9 +116,12 @@ def delete_producto(id):
 @app.route('/guardar_cotizacion', methods=['POST'])
 def guardar_cotizacion():
     data = request.json
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        # Iniciar transacción manual para asegurar integridad
+        cursor.execute("START TRANSACTION")
         
         cursor.execute(
             "INSERT INTO cotizaciones (total_general) VALUES (%s)",
@@ -131,31 +142,20 @@ def guardar_cotizacion():
             ))
 
         conn.commit()
-        cursor.close()
-        conn.close()
         return jsonify({"status": "success", "id": cotizacion_id}), 201
 
     except Exception as e:
+        conn.rollback() # Si algo falla, deshace los cambios en la DB
         return jsonify({"status": "error", "message": str(e)}), 500
-
-@app.route('/historial', methods=['GET'])
-def get_historial():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM cotizaciones ORDER BY fecha DESC")
-        historial = cursor.fetchall()
+    finally:
         cursor.close()
         conn.close()
-        return jsonify(historial)
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
 
 # --- SERVIR ARCHIVOS ESTÁTICOS ---
 
 @app.route('/')
 def home():
-    # Asegúrate de que el archivo HTML esté en la misma carpeta que este script
+    # Asegúrate de que el archivo HTML se llame exactamente así:
     return send_from_directory(os.getcwd(), 'Calcular precio impresion.html')
 
 # --- INICIO DEL SERVIDOR ---

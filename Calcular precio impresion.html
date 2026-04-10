@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Cotización e Inventario</title>
-    <link rel="stylesheet" href="style.css">
     <style>
         :root {
             --primary: #d46300;
@@ -16,20 +15,6 @@
             --text: #333;
         }
 
-        /* Forzamos que la navegación y contenedores no se vean al cargar la página */
-        nav {
-            display: none; /* Cambiado de flex a none */
-        }
-
-        .container {
-            display: none; 
-        }
-
-        /* El loginBox es lo único que debe verse por defecto si prefieres, 
-        o puedes manejarlo todo por JS */
-        #loginBox {
-            display: block;
-        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: var(--bg);
@@ -42,11 +27,31 @@
             padding-bottom: 50px;
         }
 
+        /* --- ESTADO INICIAL (OCULTO) --- */
+        nav, .container, #global-table-container {
+            display: none;
+        }
+
+        /* --- CLASES DE ACTIVACIÓN --- */
+        .show-flex { display: flex !important; }
+        .show-block { display: block !important; }
+        .container.active { display: block !important; }
+
+        /* --- Login Box --- */
+        #loginBox {
+            display: block; /* Se ve por defecto */
+            max-width: 350px;
+            margin-top: 100px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #ccc;
+        }
+
         /* --- Navegación --- */
         nav {
             background: white;
             width: 100%;
-            display: flex;
             justify-content: center;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             margin-bottom: 20px;
@@ -74,7 +79,6 @@
 
         /* --- Contenedores --- */
         .container {
-            display: none;
             background: white;
             padding: 20px;
             border-radius: 12px;
@@ -84,14 +88,11 @@
             margin-top: 10px;
         }
 
-        .container.active { display: block; }
         .wide { max-width: 850px; }
-
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 
         label { display: block; margin-top: 10px; font-size: 13px; font-weight: bold; }
-
         input, select, button {
             width: 100%;
             padding: 10px;
@@ -109,65 +110,43 @@
             cursor: pointer; 
             font-weight: bold; 
             margin-top: 15px; 
-            transition: 0.2s;
         }
 
-        button:hover { opacity: 0.9; }
         .btn-add { background: var(--accent); }
         .btn-success { background: var(--success); }
-        .btn-del { background: var(--danger); width: auto; padding: 4px 8px; margin: 0; font-size: 11px; }
+        .btn-del { background: var(--danger); width: auto; padding: 4px 8px; font-size: 11px; margin: 0; }
 
         /* --- Tabla --- */
         .table-section { margin-top: 30px; width: 100%; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; }
         th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
-        th { background: #f8fafc; }
         .total-row { font-weight: bold; font-size: 16px; background: #f1f5f9; }
 
-        .print-only { display: none; }
-
-        /* --- IMPRESIÓN --- */
         @media print {
-            nav, .no-print, button, .btn-del, #c1, #c4 { display: none !important; }
-            
-            body { background: white !important; padding: 0; }
-            
-            .container, .wide { 
-                display: block !important; 
-                box-shadow: none !important; 
-                max-width: 100% !important; 
-                width: 100% !important;
-            }
-
-            #global-table-container {
-                display: block !important;
-                width: 100% !important;
-                margin: 0 !important;
-            }
-
-            .print-only { display: block !important; }
-            table { border: 1px solid #000 !important; width: 100%; }
-            th, td { border: 1px solid #000 !important; }
-            th { background: #eee !important; }
+            nav, .no-print, button, .btn-del { display: none !important; }
+            .container, .wide { display: block !important; box-shadow: none !important; width: 100% !important; max-width: 100% !important; }
+            #global-table-container { display: block !important; }
         }
     </style>
 </head>
 <body>
-<div id="loginBox" style="max-width:350px;margin-top:100px;background:white;padding:20px;border-radius:10px;box-shadow:0 0 10px #ccc;">
+
+<div id="loginBox">
     <h3>Iniciar Sesión</h3>
     <input type="text" id="login_user" placeholder="Usuario">
     <input type="password" id="login_pass" placeholder="Contraseña">
     <button onclick="login()">Entrar</button>
 </div>
-<nav class="no-print">
-    <button class="active" onclick="tab(event, 'c1')">Costo Material</button>
-    <button onclick="tab(event, 'c2')">Impresión (Pies²)</button>
-    <button onclick="tab(event, 'c3')">Cotizar Artículos</button>
-    <button onclick="tab(event, 'c4')">⚙️ Inventario</button>
+
+<nav id="mainNav" class="no-print">
+    <button id="btn-c1" onclick="tab(event, 'c1')">Costo Material</button>
+    <button id="btn-c2" onclick="tab(event, 'c2')">Impresión (Pies²)</button>
+    <button id="btn-c3" onclick="tab(event, 'c3')">Cotizar Artículos</button>
+    <button id="btn-c4" onclick="tab(event, 'c4')">⚙️ Inventario</button>
     <button onclick="logout()">Cerrar sesión</button>
 </nav>
 
-<div id="c1" class="container active">
+<div id="c1" class="container">
     <h2>Analizador de Costo</h2>
     <div class="grid-2">
         <div><label>Ancho (pulg)</label><input type="number" id="b_ancho" placeholder="0"></div>
@@ -180,344 +159,214 @@
 </div>
 
 <div id="c2" class="container wide">
-    <div class="no-print">
-        <h2>Calculadora de Impresión</h2>
-        <div class="grid-2">
-            <div>
-                <label>Descripción</label>
-                <input type="text" id="m_desc" placeholder="Ej: Lona Banner">
-            </div>
-            <div>
-                <label>Unidad</label>
-                <select id="m_uni">
-                    <option value="pulg">Pulgadas</option>
-                    <option value="cm">Centímetros</option>
-                    <option value="pie">Pies</option>
-                </select>
-            </div>
+    <h2>Calculadora de Impresión</h2>
+    <div class="grid-2">
+        <div><label>Descripción</label><input type="text" id="m_desc" placeholder="Ej: Lona"></div>
+        <div><label>Unidad</label>
+            <select id="m_uni">
+                <option value="pulg">Pulgadas</option>
+                <option value="pie">Pies</option>
+            </select>
         </div>
-        <div class="grid-3">
-            <div><label>Ancho</label><input type="number" id="m_w"></div>
-            <div><label>Alto</label><input type="number" id="m_h"></div>
-            <div><label>Precio Pie²</label><input type="number" id="m_p"></div>
-        </div>
-        <button class="btn-add" onclick="addMedida()">+ Agregar Impresión</button>
     </div>
+    <div class="grid-3">
+        <div><label>Ancho</label><input type="number" id="m_w"></div>
+        <div><label>Alto</label><input type="number" id="m_h"></div>
+        <div><label>Precio Pie²</label><input type="number" id="m_p"></div>
+    </div>
+    <button class="btn-add" onclick="addMedida()">+ Agregar Impresión</button>
 </div>
 
 <div id="c3" class="container wide">
-    <div class="no-print">
-        <h2>Artículos y Servicios</h2>
-        <label>Seleccionar de Inventario:</label>
-        <select id="v_select" onchange="cargarDesdeInventario()">
-            <option value="">-- Seleccionar producto --</option>
-        </select>
-        
-        <div class="grid-3" style="grid-template-columns: 2fr 1fr 1fr; margin-top:15px;">
-            <div><label>Artículo</label><input type="text" id="v_desc" placeholder="Nombre"></div>
-            <div><label>Precio Unit.</label><input type="number" id="v_p"></div>
-            <div><label>Cant.</label><input type="number" id="v_c" value="1"></div>
-        </div>
-        <button class="btn-add" onclick="addVarios()">+ Agregar a Cotización</button>
+    <h2>Artículos y Servicios</h2>
+    <label>Inventario:</label>
+    <select id="v_select" onchange="cargarDesdeInventario()"></select>
+    <div class="grid-3" style="grid-template-columns: 2fr 1fr 1fr;">
+        <div><label>Artículo</label><input type="text" id="v_desc"></div>
+        <div><label>Precio</label><input type="number" id="v_p"></div>
+        <div><label>Cant.</label><input type="number" id="v_c" value="1"></div>
     </div>
+    <button class="btn-add" onclick="addVarios()">+ Agregar a Cotización</button>
 </div>
 
 <div id="c4" class="container">
     <h2>Gestión de Inventario</h2>
-    <label>Nombre del Producto</label>
-    <input type="text" id="inv_nombre" placeholder="Ej: Tubo 1/2 pulgada">
-    <label>Precio de Venta</label>
-    <input type="number" id="inv_precio" placeholder="0.00">
-    <button class="btn-success" onclick="guardarInventario()">Guardar en Inventario</button>
-    
-    <div style="margin-top: 20px;">
-        <h3>Productos Guardados</h3>
-        <ul id="lista_inv" style="list-style: none; padding: 0; font-size: 14px;"></ul>
-    </div>
+    <input type="text" id="inv_nombre" placeholder="Nombre Producto">
+    <input type="number" id="inv_precio" placeholder="Precio Venta">
+    <button class="btn-success" onclick="guardarInventario()">Guardar</button>
+    <ul id="lista_inv" style="list-style:none; padding:0; margin-top:20px;"></ul>
 </div>
 
-<div id="global-table-container" style="width: 95%; max-width: 850px; margin-top: 20px; display:none;">
+<div id="global-table-container">
     <div class="table-section">
-        <h1 class="print-only">COTIZACIÓN DE SERVICIOS</h1>
-        <p class="print-only" style="text-align:right">Fecha: <span id="fecha-print"></span></p>
-
         <table id="mainTable">
             <thead>
-                <tr>
-                    <th>Descripción</th>
-                    <th>Detalle/Medida</th>
-                    <th>Subtotal</th>
-                    <th class="no-print">Acción</th>
-                </tr>
+                <tr><th>Descripción</th><th>Detalle</th><th>Subtotal</th><th class="no-print">Acción</th></tr>
             </thead>
             <tbody></tbody>
             <tfoot>
                 <tr class="total-row">
-                    <td colspan="2" style="text-align:right">TOTAL GENERAL:</td>
+                    <td colspan="2" style="text-align:right">TOTAL:</td>
                     <td id="granTotal">RD$ 0.00</td>
                     <td class="no-print"></td>
                 </tr>
             </tfoot>
         </table>
-        
-        <button class="btn-success no-print" onclick="finalizarYGuardarCotizacion()" style="margin-top:20px;">
-            💾 Guardar e Imprimir Resumen
-        </button>
+        <button class="btn-success no-print" onclick="finalizarYGuardarCotizacion()">💾 Guardar e Imprimir</button>
     </div>
 </div>
 
 <script>
     const API_URL = "/inventario";
-let carrito = [];
-let inventario = [];
+    let carrito = [];
+    let inventario = [];
 
-// --- UNIFICACIÓN DE CARGA INICIAL ---
-window.onload = async () => {
-    try {
-        const res = await fetch("/check-session");
-        const data = await res.json();
+    window.onload = async () => {
+        try {
+            const res = await fetch("/check-session");
+            const data = await res.json();
+            if (data.logged) {
+                showApp();
+            } else {
+                showLogin();
+            }
+        } catch (e) { showLogin(); }
+    };
 
-        if (data.logged) {
-            // USUARIO LOGUEADO:
-            document.getElementById("loginBox").style.display = "none";
-            document.querySelector("nav").style.display = "flex"; // Mostramos nav
-            
-            // Mostramos la primera pestaña (Analizador de Costo)
-            const primeraPestana = document.getElementById("c1");
-            primeraPestana.classList.add("active");
-            primeraPestana.style.display = "block"; 
-            
-            document.querySelector("nav button").classList.add("active");
-            
-            await cargarInventarioDesdeDB();
-        } else {
-            // USUARIO NO LOGUEADO:
-            document.getElementById("loginBox").style.display = "block";
-            document.querySelector("nav").style.display = "none";
-            // Aseguramos que nada más se vea
-            document.querySelectorAll('.container').forEach(c => c.style.display = "none");
-        }
-    } catch (error) {
-        console.error("Error en la carga inicial:", error);
-        // En caso de error de red, mostramos solo el login por seguridad
-        document.getElementById("loginBox").style.display = "block";
+    function showApp() {
+        document.getElementById("loginBox").style.display = "none";
+        document.getElementById("mainNav").classList.add("show-flex");
+        tab(null, 'c1'); // Carga la primera pestaña
+        cargarInventarioDesdeDB();
     }
-};
 
-// --- FUNCIÓN DE LOGIN CORREGIDA ---
-async function login() {
-    const usuario = document.getElementById("login_user").value;
-    const password = document.getElementById("login_pass").value;
+    function showLogin() {
+        document.getElementById("loginBox").style.display = "block";
+        document.getElementById("mainNav").classList.remove("show-flex");
+        document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
+    }
 
-    if (!usuario || !password) return alert("Completa los campos");
-
-    try {
+    async function login() {
+        const usuario = document.getElementById("login_user").value;
+        const password = document.getElementById("login_pass").value;
         const res = await fetch("/login", {
             method: "POST",
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ usuario, password })
         });
+        if (res.ok) showApp();
+        else alert("Credenciales incorrectas");
+    }
 
-        if (res.ok) {
-            // Cambio visual inmediato
-            document.getElementById("loginBox").style.display = "none";
-            document.querySelector("nav").style.display = "flex";
-            document.getElementById("c1").classList.add("active");
-            document.querySelector("nav button").classList.add("active");
-            
-            await cargarInventarioDesdeDB(); // Cargar datos tras loguear
+    function logout() {
+        fetch("/logout").then(() => location.reload());
+    }
+
+    function tab(e, id) {
+        document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById(id).classList.add('active');
+        if(e) e.currentTarget.classList.add('active');
+        else document.getElementById('btn-' + id).classList.add('active');
+
+        const table = document.getElementById('global-table-container');
+        if (id === 'c2' || id === 'c3') {
+            table.style.display = "block";
+            document.getElementById(id).appendChild(table);
         } else {
-            alert("Usuario o contraseña incorrectos");
+            table.style.display = "none";
         }
-    } catch (error) {
-        alert("Error de conexión con el servidor");
     }
-}
 
-async function logout() {
-    await fetch("/logout");
-    location.reload(); // Recarga para limpiar todo el estado
-}
-
-// --- PESTAÑAS (TABS) ---
-function tab(e, id) {
-    // Ocultar todos los contenedores
-    document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
-    // Desactivar todos los botones
-    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-    
-    // Activar el seleccionado
-    document.getElementById(id).classList.add('active');
-    e.currentTarget.classList.add('active');
-    
-    const table = document.getElementById('global-table-container');
-    // Mostrar la tabla solo en Cotizar o Impresión
-    if (id === 'c2' || id === 'c3') {
-        table.style.display = "block";
-        document.getElementById(id).appendChild(table);
-    } else {
-        table.style.display = "none";
-    }
-}
-
-// --- INVENTARIO ---
-async function cargarInventarioDesdeDB() {
-    try {
+    async function cargarInventarioDesdeDB() {
         const res = await fetch(API_URL);
         if (res.ok) {
             inventario = await res.json();
-            renderInventario();
-            actualizarSelectInventario();
+            const lista = document.getElementById('lista_inv');
+            const select = document.getElementById('v_select');
+            lista.innerHTML = "";
+            select.innerHTML = '<option value="">-- Seleccionar --</option>';
+            inventario.forEach((item, i) => {
+                lista.innerHTML += `<li>${item.nombre} - RD$ ${item.precio} <button class="btn-del" onclick="borrarInv(${item.id})">X</button></li>`;
+                select.innerHTML += `<option value="${i}">${item.nombre}</option>`;
+            });
         }
-    } catch (error) {
-        console.log("Error cargando inventario");
     }
-}
 
-async function guardarInventario() {
-    const nombre = document.getElementById('inv_nombre').value;
-    const precio = parseFloat(document.getElementById('inv_precio').value);
-    if (!nombre || isNaN(precio)) return alert("Ingresa datos válidos");
+    function cargarDesdeInventario() {
+        const idx = document.getElementById('v_select').value;
+        if(idx !== "") {
+            document.getElementById('v_desc').value = inventario[idx].nombre;
+            document.getElementById('v_p').value = inventario[idx].precio;
+        }
+    }
 
-    try {
-        const res = await fetch(API_URL, {
+    async function guardarInventario() {
+        const nombre = document.getElementById('inv_nombre').value;
+        const precio = document.getElementById('inv_precio').value;
+        await fetch(API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nombre, precio })
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({nombre, precio})
         });
-        if (res.ok) {
-            document.getElementById('inv_nombre').value = "";
-            document.getElementById('inv_precio').value = "";
-            await cargarInventarioDesdeDB();
-        }
-    } catch (e) { alert("Error al guardar"); }
-}
-
-async function borrarInv(id) {
-    if (!confirm("¿Eliminar producto?")) return;
-    try {
-        const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-        if (res.ok) await cargarInventarioDesdeDB();
-    } catch (e) { alert("Error al eliminar"); }
-}
-
-function renderInventario() {
-    const lista = document.getElementById('lista_inv');
-    lista.innerHTML = "";
-    inventario.forEach((item) => {
-        lista.innerHTML += `
-            <li style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:8px 0;">
-                <span><strong>${item.nombre}</strong> - RD$ ${parseFloat(item.precio).toFixed(2)}</span>
-                <button class="btn-del" onclick="borrarInv(${item.id})">Eliminar</button>
-            </li>`;
-    });
-}
-
-function actualizarSelectInventario() {
-    const select = document.getElementById('v_select');
-    select.innerHTML = '<option value="">-- Seleccionar producto --</option>';
-    inventario.forEach((item, index) => {
-        select.innerHTML += `<option value="${index}">${item.nombre} (RD$ ${parseFloat(item.precio).toFixed(2)})</option>`;
-    });
-}
-
-function cargarDesdeInventario() {
-    const idx = document.getElementById('v_select').value;
-    if (idx !== "") {
-        document.getElementById('v_desc').value = inventario[idx].nombre;
-        document.getElementById('v_p').value = inventario[idx].precio;
+        cargarInventarioDesdeDB();
     }
-}
 
-// --- COTIZACIÓN Y CÁLCULOS ---
-function addMedida() {
-    const desc = document.getElementById('m_desc').value || "Impresión";
-    const w = parseFloat(document.getElementById('m_w').value);
-    const h = parseFloat(document.getElementById('m_h').value);
-    const uni = document.getElementById('m_uni').value;
-    const p = parseFloat(document.getElementById('m_p').value);
-
-    if (isNaN(w) || isNaN(h) || isNaN(p)) return alert("Completa los datos");
-
-    let wp = w, hp = h;
-    if (uni === 'pulg') { wp /= 12; hp /= 12; }
-    else if (uni === 'cm') { wp /= 30.48; hp /= 30.48; }
-
-    const sub = wp * hp * p;
-    carrito.push({ desc, detalle: `${w}x${h} ${uni} (@RD$ ${p}/pie²)`, sub });
-    updateTable();
-    document.getElementById('m_w').value = ""; document.getElementById('m_h').value = "";
-}
-
-function addVarios() {
-    const desc = document.getElementById('v_desc').value;
-    const p = parseFloat(document.getElementById('v_p').value);
-    const c = parseFloat(document.getElementById('v_c').value);
-
-    if (!desc || isNaN(p)) return alert("Datos incompletos");
-
-    const sub = p * c;
-    carrito.push({ desc, detalle: `${c} unidad(es) x RD$ ${p.toFixed(2)}`, sub });
-    updateTable();
-    document.getElementById('v_desc').value = ""; document.getElementById('v_p').value = "";
-}
-
-function updateTable() {
-    const tbody = document.querySelector("#mainTable tbody");
-    tbody.innerHTML = "";
-    let total = 0;
-    carrito.forEach((item, i) => {
-        total += item.sub;
-        tbody.innerHTML += `<tr>
-            <td>${item.desc}</td>
-            <td>${item.detalle}</td>
-            <td>RD$ ${item.sub.toFixed(2)}</td>
-            <td class="no-print"><button class="btn-del" onclick="delItem(${i})">X</button></td>
-        </tr>`;
-    });
-    document.getElementById('granTotal').innerText = `RD$ ${total.toFixed(2)}`;
-}
-
-function delItem(i) {
-    carrito.splice(i, 1);
-    updateTable();
-}
-
-function calcBase() {
-    const w = parseFloat(document.getElementById('b_ancho').value);
-    const h = parseFloat(document.getElementById('b_alto').value);
-    const p = parseFloat(document.getElementById('b_precio').value);
-    if (w && h && p) {
-        const area = (w / 12) * (h / 12);
-        document.getElementById('res_b').innerHTML = `Área: ${area.toFixed(2)} pie² <br> Costo: RD$ ${(p / area).toFixed(2)} / pie²`;
+    async function borrarInv(id) {
+        await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+        cargarInventarioDesdeDB();
     }
-}
 
-async function finalizarYGuardarCotizacion() {
-    if (carrito.length === 0) return alert("Tabla vacía");
+    function addMedida() {
+        const desc = document.getElementById('m_desc').value || "Impresión";
+        const w = parseFloat(document.getElementById('m_w').value);
+        const h = parseFloat(document.getElementById('m_h').value);
+        const p = parseFloat(document.getElementById('m_p').value);
+        if(isNaN(w) || isNaN(h)) return;
+        
+        let area = (document.getElementById('m_uni').value === 'pulg') ? (w/12)*(h/12) : w*h;
+        const sub = area * p;
+        carrito.push({ desc, detalle: `${w}x${h} (@RD$ ${p})`, sub });
+        updateTable();
+    }
 
-    const totalStr = document.getElementById('granTotal').innerText.replace('RD$ ', '');
-    const total = parseFloat(totalStr);
-    const datosAEnviar = { total: total, items: carrito };
+    function addVarios() {
+        const desc = document.getElementById('v_desc').value;
+        const p = parseFloat(document.getElementById('v_p').value);
+        const c = parseFloat(document.getElementById('v_c').value);
+        carrito.push({ desc, detalle: `${c} unid. x ${p}`, sub: p * c });
+        updateTable();
+    }
 
-    try {
+    function updateTable() {
+        const tbody = document.querySelector("#mainTable tbody");
+        tbody.innerHTML = "";
+        let total = 0;
+        carrito.forEach((item, i) => {
+            total += item.sub;
+            tbody.innerHTML += `<tr><td>${item.desc}</td><td>${item.detalle}</td><td>RD$ ${item.sub.toFixed(2)}</td><td><button class="btn-del" onclick="carrito.splice(${i},1);updateTable()">X</button></td></tr>`;
+        });
+        document.getElementById('granTotal').innerText = `RD$ ${total.toFixed(2)}`;
+    }
+
+    function calcBase() {
+        const w = document.getElementById('b_ancho').value;
+        const h = document.getElementById('b_alto').value;
+        const p = document.getElementById('b_precio').value;
+        const area = (w/12)*(h/12);
+        document.getElementById('res_b').innerHTML = `Costo Pie²: RD$ ${(p/area).toFixed(2)}`;
+    }
+
+    async function finalizarYGuardarCotizacion() {
+        const total = parseFloat(document.getElementById('granTotal').innerText.replace('RD$ ', ''));
         const res = await fetch("/guardar_cotizacion", {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(datosAEnviar)
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ total, items: carrito })
         });
-
-        if (res.ok) {
-            const respuesta = await res.json();
-            document.getElementById('fecha-print').innerText = new Date().toLocaleString();
-            alert("Cotización #" + respuesta.id + " guardada.");
-            window.print();
-        }
-    } catch (error) {
-        alert("Error al guardar. Se procederá solo con la impresión.");
-        window.print();
+        if(res.ok) window.print();
     }
-}
 </script>
 </body>
 </html>
