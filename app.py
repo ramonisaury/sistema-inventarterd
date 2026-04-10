@@ -15,6 +15,12 @@ db_config = {
     'port': 30898
 }
 
+
+@app.route('/inventario', methods=['POST'])
+def add_producto():
+    nuevo_prod = request.json
+    print("Datos recibidos:", nuevo_prod)  # 👈 agregar esto
+
 def get_db_connection():
     return mysql.connector.connect(**db_config)
 
