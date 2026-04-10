@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import mysql.connector
+import os
 
 app = Flask(__name__)
 CORS(app)  # Permite la comunicación con el HTML
@@ -18,7 +19,6 @@ def get_db_connection():
     return mysql.connector.connect(**db_config)
 
 from flask import send_from_directory
-import os
 
 @app.route('/')
 def home():
