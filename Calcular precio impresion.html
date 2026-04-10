@@ -16,6 +16,20 @@
             --text: #333;
         }
 
+        /* Forzamos que la navegación y contenedores no se vean al cargar la página */
+        nav {
+            display: none; /* Cambiado de flex a none */
+        }
+
+        .container {
+            display: none; 
+        }
+
+        /* El loginBox es lo único que debe verse por defecto si prefieres, 
+        o puedes manejarlo todo por JS */
+        #loginBox {
+            display: block;
+        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: var(--bg);
