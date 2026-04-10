@@ -7,11 +7,11 @@
     <link rel="stylesheet" href="style.css">
     <style>
         :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
+            --primary: #cdad0f;
+            --primary-hover: #dc8d05;
             --success: #16a34a;
             --danger: #dc2626;
-            --accent: #8b5cf6;
+            --accent: #ea8e2d;
             --bg: #f4f6f9;
             --text: #333;
         }
@@ -139,12 +139,18 @@
     </style>
 </head>
 <body>
-
+<div id="loginBox" style="max-width:350px;margin-top:100px;background:white;padding:20px;border-radius:10px;box-shadow:0 0 10px #ccc;">
+    <h3>Iniciar Sesión</h3>
+    <input type="text" id="login_user" placeholder="Usuario">
+    <input type="password" id="login_pass" placeholder="Contraseña">
+    <button onclick="login()">Entrar</button>
+</div>
 <nav class="no-print">
     <button class="active" onclick="tab(event, 'c1')">Costo Material</button>
     <button onclick="tab(event, 'c2')">Impresión (Pies²)</button>
     <button onclick="tab(event, 'c3')">Cotizar Artículos</button>
     <button onclick="tab(event, 'c4')">⚙️ Inventario</button>
+    <button onclick="logout()">Cerrar sesión</button>
 </nav>
 
 <div id="c1" class="container active">
@@ -254,6 +260,46 @@ let inventario = [];
 window.onload = async () => {
     await cargarInventarioDesdeDB();
 };
+
+// --- Funcion para el login ---
+async function login(){
+    const usuario = document.getElementById("login_user").value;
+    const password = document.getElementById("login_pass").value;
+
+    const res = await fetch("/login",{
+        method:"POST",
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({usuario,password})
+    });
+
+    if(res.ok){
+        document.getElementById("loginBox").style.display="none";
+        document.querySelector("nav").style.display="flex";
+    }else{
+        alert("Usuario o contraseña incorrectos");
+    }
+}
+
+//funcion para cerrar sesion
+async function logout(){
+    await fetch("/logout");
+    location.reload();
+}
+
+window.onload = async () => {
+    const res = await fetch("/check-session");
+    const data = await res.json();
+
+    if(data.logged){
+        document.getElementById("loginBox").style.display="none";
+    }else{
+        document.querySelector("nav").style.display="none";
+    }
+
+    await cargarInventarioDesdeDB();
+};
+
+
 
 function tab(e, id) {
     document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));

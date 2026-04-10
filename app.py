@@ -1,3 +1,5 @@
+from flask import session
+app.secret_key = "inventarte_secret_key"
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import mysql.connector
@@ -15,6 +17,41 @@ db_config = {
     'port': 30898
 }
 
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    usuario = data['usuario']
+    password = data['password']
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute(
+        "SELECT * FROM usuarios WHERE usuario=%s AND password=%s",
+        (usuario, password)
+    )
+
+    user = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if user:
+        session['user'] = user['usuario']
+        return jsonify({"status": "success"})
+    else:
+        return jsonify({"status": "error"}), 401
+
+@app.route('/check-session')
+def check_session():
+    if 'user' in session:
+        return jsonify({"logged": True})
+    return jsonify({"logged": False})
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return jsonify({"status": "logout"})
 
 @app.route('/inventario', methods=['POST'])
 def add_producto():
