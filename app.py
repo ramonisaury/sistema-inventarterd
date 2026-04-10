@@ -1,12 +1,12 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import mysql.connector
 import os
 
 app = Flask(__name__)
-CORS(app)  # Permite la comunicación con el HTML
+CORS(app)
 
-# Configuración de MySQL
+# Configuración de MySQL (Railway)
 db_config = {
     'host': 'mysql.railway.internal',
     'user': 'root',
@@ -18,8 +18,7 @@ db_config = {
 def get_db_connection():
     return mysql.connector.connect(**db_config)
 
-from flask import send_from_directory
-
+# Servir HTML
 @app.route('/')
 def home():
     return send_from_directory(os.getcwd(), 'Calcular precio impresion.html')
@@ -45,8 +44,10 @@ def add_producto():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO inventario (nombre, precio) VALUES (%s, %s)", 
-                       (nuevo_prod['nombre'], nuevo_prod['precio']))
+        cursor.execute(
+            "INSERT INTO inventario (nombre, precio) VALUES (%s, %s)",
+            (nuevo_prod['nombre'], nuevo_prod['precio'])
+        )
         conn.commit()
         cursor.close()
         conn.close()
@@ -74,24 +75,33 @@ def guardar_cotizacion():
     data = request.json
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
-        # 1. Insertar la cabecera
-        cursor.execute("INSERT INTO cotizaciones (total_general) VALUES (%s)", (data['total'],))
+        cursor.execute(
+            "INSERT INTO cotizaciones (total_general) VALUES (%s)",
+            (data['total'],)
+        )
         cotizacion_id = cursor.lastrowid
-        
-        # 2. Insertar cada item de la tabla
+
         for item in data['items']:
             cursor.execute("""
-                INSERT INTO cotizacion_detalle (cotizacion_id, descripcion, detalle_medida, subtotal)
+                INSERT INTO cotizacion_detalle
+                (cotizacion_id, descripcion, detalle_medida, subtotal)
                 VALUES (%s, %s, %s, %s)
-            """, (cotizacion_id, item['desc'], item['detalle'], item['sub']))
-        
+            """, (
+                cotizacion_id,
+                item['desc'],
+                item['detalle'],
+                item['sub']
+            ))
+
         conn.commit()
         return jsonify({"status": "success", "id": cotizacion_id}), 201
+
     except Exception as e:
         conn.rollback()
         return jsonify({"status": "error", "message": str(e)}), 500
+
     finally:
         cursor.close()
         conn.close()
@@ -109,8 +119,8 @@ def get_historial():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+
 # --- INICIO DEL SERVIDOR ---
-# IMPORTANTE: Esta sección SIEMPRE debe ir al final del archivo
 if __name__ == '__main__':
-    print("Servidor iniciado en http://localhost:5000")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)

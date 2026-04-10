@@ -247,7 +247,7 @@
 </div>
 
 <script>
-const API_URL = "http://localhost:5000/inventario";
+const API_URL = "/inventario";
 let carrito = [];
 let inventario = [];
 
@@ -407,7 +407,7 @@ async function finalizarYGuardarCotizacion() {
     const datosAEnviar = { total: total, items: carrito };
 
     try {
-        const res = await fetch("http://127.0.0.1:5000/guardar_cotizacion", {
+        const res = await fetch("/guardar_cotizacion", {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(datosAEnviar)
