@@ -7,10 +7,11 @@ CORS(app)  # Permite la comunicación con el HTML
 
 # Configuración de MySQL
 db_config = {
-    'host': 'localhost',
+    'host': 'mysql.railway.internal',
     'user': 'root',
-    'password': 'infopmmc',
-    'database': 'sistema_impresion'
+    'password': 'KfvWEynWDrziCgNCaUStMCCAXyPaaSGM',
+    'database': 'railway',
+    'port': 3306
 }
 
 def get_db_connection():
