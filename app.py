@@ -1,11 +1,12 @@
 from flask import session
-app.secret_key = "inventarte_secret_key"
+
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import mysql.connector
 import os
 
 app = Flask(__name__)
+app.secret_key = "inventarte_secret_key"
 CORS(app)
 
 # Configuración de MySQL (Railway)
