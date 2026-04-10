@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="style.css">
     <style>
         :root {
-            --primary: #cdad0f;
-            --primary-hover: #dc8d05;
+            --primary: #d46300;
+            --primary-hover: #f58300;
             --success: #16a34a;
             --danger: #dc2626;
             --accent: #ea8e2d;
@@ -253,62 +253,84 @@
 </div>
 
 <script>
-const API_URL = "/inventario";
+    const API_URL = "/inventario";
 let carrito = [];
 let inventario = [];
 
+// --- UNIFICACIÓN DE CARGA INICIAL ---
 window.onload = async () => {
-    await cargarInventarioDesdeDB();
+    try {
+        const res = await fetch("/check-session");
+        const data = await res.json();
+
+        if (data.logged) {
+            // Si ya está logueado, ocultamos login y mostramos navegación
+            document.getElementById("loginBox").style.display = "none";
+            document.querySelector("nav").style.display = "flex";
+            // Mostramos la primera pestaña por defecto
+            document.getElementById("c1").classList.add("active");
+        } else {
+            // Si no está logueado, ocultamos navegación
+            document.getElementById("loginBox").style.display = "block";
+            document.querySelector("nav").style.display = "none";
+            document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
+        }
+        
+        await cargarInventarioDesdeDB();
+    } catch (error) {
+        console.error("Error en la carga inicial:", error);
+    }
 };
 
-// --- Funcion para el login ---
-async function login(){
+// --- FUNCIÓN DE LOGIN CORREGIDA ---
+async function login() {
     const usuario = document.getElementById("login_user").value;
     const password = document.getElementById("login_pass").value;
 
-    const res = await fetch("/login",{
-        method:"POST",
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({usuario,password})
-    });
+    if (!usuario || !password) return alert("Completa los campos");
 
-    if(res.ok){
-        document.getElementById("loginBox").style.display="none";
-        document.querySelector("nav").style.display="flex";
-    }else{
-        alert("Usuario o contraseña incorrectos");
+    try {
+        const res = await fetch("/login", {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario, password })
+        });
+
+        if (res.ok) {
+            // Cambio visual inmediato
+            document.getElementById("loginBox").style.display = "none";
+            document.querySelector("nav").style.display = "flex";
+            document.getElementById("c1").classList.add("active");
+            document.querySelector("nav button").classList.add("active");
+            
+            await cargarInventarioDesdeDB(); // Cargar datos tras loguear
+        } else {
+            alert("Usuario o contraseña incorrectos");
+        }
+    } catch (error) {
+        alert("Error de conexión con el servidor");
     }
 }
 
-//funcion para cerrar sesion
-async function logout(){
+async function logout() {
     await fetch("/logout");
-    location.reload();
+    location.reload(); // Recarga para limpiar todo el estado
 }
 
-window.onload = async () => {
-    const res = await fetch("/check-session");
-    const data = await res.json();
-
-    if(data.logged){
-        document.getElementById("loginBox").style.display="none";
-    }else{
-        document.querySelector("nav").style.display="none";
-    }
-
-    await cargarInventarioDesdeDB();
-};
-
-
-
+// --- PESTAÑAS (TABS) ---
 function tab(e, id) {
+    // Ocultar todos los contenedores
     document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
+    // Desactivar todos los botones
     document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    
+    // Activar el seleccionado
     document.getElementById(id).classList.add('active');
     e.currentTarget.classList.add('active');
     
     const table = document.getElementById('global-table-container');
-    if(id === 'c2' || id === 'c3') {
+    // Mostrar la tabla solo en Cotizar o Impresión
+    if (id === 'c2' || id === 'c3') {
         table.style.display = "block";
         document.getElementById(id).appendChild(table);
     } else {
@@ -320,37 +342,40 @@ function tab(e, id) {
 async function cargarInventarioDesdeDB() {
     try {
         const res = await fetch(API_URL);
-        if (!res.ok) throw new Error();
-        inventario = await res.json();
-        renderInventario();
-        actualizarSelectInventario();
+        if (res.ok) {
+            inventario = await res.json();
+            renderInventario();
+            actualizarSelectInventario();
+        }
     } catch (error) {
-        console.log("Servidor no detectado, operando en modo local/limitado.");
+        console.log("Error cargando inventario");
     }
 }
 
 async function guardarInventario() {
     const nombre = document.getElementById('inv_nombre').value;
     const precio = parseFloat(document.getElementById('inv_precio').value);
-    if(!nombre || isNaN(precio)) return alert("Ingresa datos válidos");
+    if (!nombre || isNaN(precio)) return alert("Ingresa datos válidos");
 
     try {
-        await fetch(API_URL, {
+        const res = await fetch(API_URL, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nombre, precio })
         });
-        document.getElementById('inv_nombre').value = "";
-        document.getElementById('inv_precio').value = "";
-        await cargarInventarioDesdeDB();
-    } catch (e) { alert("Error de conexión"); }
+        if (res.ok) {
+            document.getElementById('inv_nombre').value = "";
+            document.getElementById('inv_precio').value = "";
+            await cargarInventarioDesdeDB();
+        }
+    } catch (e) { alert("Error al guardar"); }
 }
 
 async function borrarInv(id) {
-    if(!confirm("¿Eliminar producto?")) return;
+    if (!confirm("¿Eliminar producto?")) return;
     try {
-        await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-        await cargarInventarioDesdeDB();
+        const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+        if (res.ok) await cargarInventarioDesdeDB();
     } catch (e) { alert("Error al eliminar"); }
 }
 
@@ -376,13 +401,13 @@ function actualizarSelectInventario() {
 
 function cargarDesdeInventario() {
     const idx = document.getElementById('v_select').value;
-    if(idx !== "") {
+    if (idx !== "") {
         document.getElementById('v_desc').value = inventario[idx].nombre;
         document.getElementById('v_p').value = inventario[idx].precio;
     }
 }
 
-// --- COTIZACIÓN ---
+// --- COTIZACIÓN Y CÁLCULOS ---
 function addMedida() {
     const desc = document.getElementById('m_desc').value || "Impresión";
     const w = parseFloat(document.getElementById('m_w').value);
@@ -390,11 +415,11 @@ function addMedida() {
     const uni = document.getElementById('m_uni').value;
     const p = parseFloat(document.getElementById('m_p').value);
 
-    if(isNaN(w) || isNaN(h) || isNaN(p)) return alert("Completa los datos");
+    if (isNaN(w) || isNaN(h) || isNaN(p)) return alert("Completa los datos");
 
     let wp = w, hp = h;
-    if(uni === 'pulg') { wp /= 12; hp /= 12; }
-    else if(uni === 'cm') { wp /= 30.48; hp /= 30.48; }
+    if (uni === 'pulg') { wp /= 12; hp /= 12; }
+    else if (uni === 'cm') { wp /= 30.48; hp /= 30.48; }
 
     const sub = wp * hp * p;
     carrito.push({ desc, detalle: `${w}x${h} ${uni} (@RD$ ${p}/pie²)`, sub });
@@ -407,7 +432,7 @@ function addVarios() {
     const p = parseFloat(document.getElementById('v_p').value);
     const c = parseFloat(document.getElementById('v_c').value);
 
-    if(!desc || isNaN(p)) return alert("Datos incompletos");
+    if (!desc || isNaN(p)) return alert("Datos incompletos");
 
     const sub = p * c;
     carrito.push({ desc, detalle: `${c} unidad(es) x RD$ ${p.toFixed(2)}`, sub });
@@ -440,22 +465,23 @@ function calcBase() {
     const w = parseFloat(document.getElementById('b_ancho').value);
     const h = parseFloat(document.getElementById('b_alto').value);
     const p = parseFloat(document.getElementById('b_precio').value);
-    if(w && h && p) {
-        const area = (w/12)*(h/12);
-        document.getElementById('res_b').innerHTML = `Área: ${area.toFixed(2)} pie² <br> Costo: RD$ ${(p/area).toFixed(2)} / pie²`;
+    if (w && h && p) {
+        const area = (w / 12) * (h / 12);
+        document.getElementById('res_b').innerHTML = `Área: ${area.toFixed(2)} pie² <br> Costo: RD$ ${(p / area).toFixed(2)} / pie²`;
     }
 }
 
 async function finalizarYGuardarCotizacion() {
     if (carrito.length === 0) return alert("Tabla vacía");
 
-    const total = parseFloat(document.getElementById('granTotal').innerText.replace('RD$ ', ''));
+    const totalStr = document.getElementById('granTotal').innerText.replace('RD$ ', '');
+    const total = parseFloat(totalStr);
     const datosAEnviar = { total: total, items: carrito };
 
     try {
         const res = await fetch("/guardar_cotizacion", {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datosAEnviar)
         });
 
@@ -466,7 +492,7 @@ async function finalizarYGuardarCotizacion() {
             window.print();
         }
     } catch (error) {
-        alert("Error de servidor. Se imprimirá sin guardar en base de datos.");
+        alert("Error al guardar. Se procederá solo con la impresión.");
         window.print();
     }
 }
