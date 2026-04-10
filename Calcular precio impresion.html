@@ -278,21 +278,29 @@ window.onload = async () => {
         const data = await res.json();
 
         if (data.logged) {
-            // Si ya está logueado, ocultamos login y mostramos navegación
+            // USUARIO LOGUEADO:
             document.getElementById("loginBox").style.display = "none";
-            document.querySelector("nav").style.display = "flex";
-            // Mostramos la primera pestaña por defecto
-            document.getElementById("c1").classList.add("active");
+            document.querySelector("nav").style.display = "flex"; // Mostramos nav
+            
+            // Mostramos la primera pestaña (Analizador de Costo)
+            const primeraPestana = document.getElementById("c1");
+            primeraPestana.classList.add("active");
+            primeraPestana.style.display = "block"; 
+            
+            document.querySelector("nav button").classList.add("active");
+            
+            await cargarInventarioDesdeDB();
         } else {
-            // Si no está logueado, ocultamos navegación
+            // USUARIO NO LOGUEADO:
             document.getElementById("loginBox").style.display = "block";
             document.querySelector("nav").style.display = "none";
-            document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
+            // Aseguramos que nada más se vea
+            document.querySelectorAll('.container').forEach(c => c.style.display = "none");
         }
-        
-        await cargarInventarioDesdeDB();
     } catch (error) {
         console.error("Error en la carga inicial:", error);
+        // En caso de error de red, mostramos solo el login por seguridad
+        document.getElementById("loginBox").style.display = "block";
     }
 };
 
