@@ -16,6 +16,13 @@ db_config = {
 def get_db_connection():
     return mysql.connector.connect(**db_config)
 
+from flask import send_from_directory
+import os
+
+@app.route('/')
+def home():
+    return send_from_directory(os.getcwd(), 'Calcular precio impresion.html')
+
 # --- RUTAS DE INVENTARIO ---
 
 @app.route('/inventario', methods=['GET'])
